@@ -1,0 +1,15 @@
+{
+  "provider": "outlook",
+  "browser": "chrome",
+  "headless": false,
+  "auto_username": true,
+  "auto_password": true,
+  "sms_service": "none",
+  "use_proxy": false,
+  "auto_proxy": false,
+  "proxies": "",
+  "firstname": "",
+  "lastname": "",
+  "birthdate": "",
+  "country": ""
+}
