@@ -2,7 +2,6 @@ import logging
 import os
 import sys
 import random
-
 sys.path.append(os.path.dirname(__file__))
 
 from config import (
@@ -48,14 +47,13 @@ class Ninjemail():
         Logs are saved in the 'logs/ninjemail.log' file with a format of '[timestamp] [log_level]: log_message'.
 
     """
-
     def __init__(self,
                  browser="firefox",
                  captcha_keys={},
                  sms_keys={},
                  proxies=None,
                  auto_proxy=False
-                 ):
+                 ):     
         """
         Initializes a Ninjemail instance.
 
@@ -67,8 +65,7 @@ class Ninjemail():
             auto_proxy (bool, optional): Flag to indicate whether to use free proxies. Default is False.
         """
         if browser not in SUPPORTED_BROWSERS:
-            raise ValueError(
-                f"Unsupported browser '{browser}'. Supported browsers are: {', '.join(SUPPORTED_BROWSERS)}")
+            raise ValueError(f"Unsupported browser '{browser}'. Supported browsers are: {', '.join(SUPPORTED_BROWSERS)}")
         self.browser = browser
         self.captcha_keys = captcha_keys
         self.sms_keys = sms_keys
@@ -77,12 +74,12 @@ class Ninjemail():
         self.default_captcha_service = DEFAULT_CAPTCHA_SERVICE
         self.sms_services_supported = SMS_SERVICES_SUPPORTED
         self.default_sms_service = DEFAULT_SMS_SERVICE
-        self.supported_solvers_by_email = SUPPORTED_SOLVERS_BY_EMAIL
-
+        self.supported_solvers_by_email = SUPPORTED_SOLVERS_BY_EMAIL 
+        
         self.proxies = proxies
         self.auto_proxy = auto_proxy
 
-        # Set up logging
+        #Set up logging
         self.setup_logging()
 
     def setup_logging(self):
@@ -127,8 +124,7 @@ class Ninjemail():
         for solver in self.supported_solvers_by_email.get(email_provider.lower(), []):
             if solver in self.captcha_keys:
                 return {"name": solver, "key": self.captcha_keys[solver]}
-        logging.info(
-            f'Supported captcha solving services for {email_provider} are: {self.supported_solvers_by_email[email_provider.lower()]}')
+        logging.info(f'Supported captcha solving services for {email_provider} are: { self.supported_solvers_by_email[email_provider.lower()]}')
         raise ValueError(f"No captcha key provided for email provider: {email_provider}")
 
     def get_sms_key(self):
@@ -146,10 +142,10 @@ class Ninjemail():
             selected_service = random.choice(list(self.sms_keys.keys()))
             return {"name": selected_service, "data": self.sms_keys[selected_service]}
 
-    def create_outlook_account(self,
-                               username="",
-                               password="",
-                               first_name="",
+    def create_outlook_account(self, 
+                               username="", 
+                               password="", 
+                               first_name="", 
                                last_name="",
                                country="",
                                birthdate="",
@@ -184,10 +180,10 @@ class Ninjemail():
             country, birthdate = generate_missing_info(username, password, first_name, last_name, country, birthdate)
         month, day, year = get_birthdate(birthdate)
 
-        return outlook.create_account(driver,
-                                      username,
-                                      password,
-                                      first_name,
+        return outlook.create_account(driver, 
+                                      username, 
+                                      password, 
+                                      first_name, 
                                       last_name,
                                       country,
                                       month,
@@ -195,13 +191,13 @@ class Ninjemail():
                                       year,
                                       hotmail)
 
-    def create_gmail_account(self,
-                             username="",
-                             password="",
-                             first_name="",
-                             last_name="",
-                             birthdate="",
-                             use_proxy=True):
+    def create_gmail_account(self, 
+                               username="", 
+                               password="", 
+                               first_name="", 
+                               last_name="",
+                               birthdate="",
+                               use_proxy=True):
         """
         Creates a Gmail account using the provided information.
 
@@ -229,23 +225,23 @@ class Ninjemail():
 
         sms_key = self.get_sms_key()
 
-        return gmail.create_account(driver,
+        return gmail.create_account(driver, 
                                     sms_key,
-                                    username,
-                                    password,
-                                    first_name,
+                                    username, 
+                                    password, 
+                                    first_name, 
                                     last_name,
                                     month,
                                     day,
                                     year)
 
-    def create_yahoo_account(self,
-                             username="",
-                             password="",
-                             first_name="",
-                             last_name="",
-                             birthdate="",
-                             use_proxy=True):
+    def create_yahoo_account(self, 
+                               username="", 
+                               password="", 
+                               first_name="", 
+                               last_name="",
+                               birthdate="",
+                               use_proxy=True):
         """
         Creates a Yahoo/Myyahoo account using the provided information.
 
@@ -274,11 +270,11 @@ class Ninjemail():
             _, birthdate = generate_missing_info(username, password, first_name, last_name, '', birthdate)
         month, day, year = get_birthdate(birthdate)
 
-        return yahoo.create_account(driver,
+        return yahoo.create_account(driver, 
                                     sms_key,
-                                    username,
-                                    password,
-                                    first_name,
+                                    username, 
+                                    password, 
+                                    first_name, 
                                     last_name,
                                     month,
                                     day,

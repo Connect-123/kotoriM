@@ -8,6 +8,7 @@ import string
 from datetime import datetime, timedelta
 import json
 import os
+from typing import List, Optional
 
 # Try to import the actual ninjemail library
 try:
@@ -19,15 +20,20 @@ except ImportError:
     NINJEMAIL_AVAILABLE = False
     NinjemailLib = None
 
+import random
+import string
+from datetime import datetime, timedelta
+from typing import List, Optional
+
 
 class DataGenerator:
     """Generates random data for account creation"""
 
-    # Common first names
+    # Built-in fallback lists
     FIRST_NAMES_MALE = [
         "James", "John", "Robert", "Michael", "William", "David", "Richard", "Joseph",
         "Thomas", "Christopher", "Charles", "Daniel", "Matthew", "Anthony", "Mark",
-        "Donald", "Steven", "Kenneth", "Andrew", "Kenneth", "Joshua", "Kevin", "Brian",
+        "Donald", "Steven", "Kenneth", "Andrew", "Joshua", "Kevin", "Brian",
         "George", "Edward", "Ronald", "Timothy", "Jason", "Jeffrey", "Ryan", "Jacob"
     ]
 
@@ -38,7 +44,6 @@ class DataGenerator:
         "Stephanie", "Rebecca", "Sharon", "Laura", "Cynthia", "Kathleen", "Amy", "Shirley"
     ]
 
-    # Common last names
     LAST_NAMES = [
         "Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis",
         "Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson",
@@ -48,22 +53,87 @@ class DataGenerator:
         "Green", "Adams", "Nelson", "Baker", "Hall", "Rivera", "Campbell", "Mitchell"
     ]
 
-    # Countries
     COUNTRIES = [
         "United States", "Canada", "United Kingdom", "Australia", "Germany", "France",
         "Italy", "Spain", "Netherlands", "Belgium", "Switzerland", "Austria", "Sweden",
         "Norway", "Denmark", "Finland", "Ireland", "New Zealand", "Singapore", "Japan"
     ]
 
+    # --- NEW: runtime name pools (default to built-ins; can be overwritten) ---
+    _FIRST_POOL: Optional[List[str]] = None
+    _LAST_POOL: Optional[List[str]] = None
+
+    @staticmethod
+    def load_names_from_files(
+            combined: Optional[str] = None,
+            first_names: Optional[str] = None,
+            last_names: Optional[str] = None
+    ):
+        """
+        Load large name lists from text files.
+
+        combined: text file, one person per line: "First Last"
+        first_names: text file, one first name per line
+        last_names:  text file, one last name per line
+        """
+        firsts, lasts = [], []
+
+        def read_lines(path):
+            with open(path, "r", encoding="utf-8") as f:
+                return [ln.strip() for ln in f if ln.strip()]
+
+        # Prefer combined if provided
+        if combined:
+            for ln in read_lines(combined):
+                parts = ln.replace(",", " ").split()
+                if len(parts) >= 2:
+                    firsts.append(parts[0].strip())
+                    lasts.append(parts[-1].strip())
+
+        # Or separate files
+        if first_names:
+            firsts.extend(read_lines(first_names))
+        if last_names:
+            lasts.extend(read_lines(last_names))
+
+        # Deduplicate while preserving order
+        def dedup(seq):
+            seen = set()
+            out = []
+            for x in seq:
+                if x not in seen:
+                    seen.add(x)
+                    out.append(x)
+            return out
+
+        firsts = dedup(firsts)
+        lasts = dedup(lasts)
+
+        if firsts:
+            DataGenerator._FIRST_POOL = firsts
+        if lasts:
+            DataGenerator._LAST_POOL = lasts
+
+    # --- Generators using pools if available ---
+    @staticmethod
+    def generate_first_name(gender=None):
+        pool = (DataGenerator._FIRST_POOL
+                if DataGenerator._FIRST_POOL
+                else DataGenerator.FIRST_NAMES_MALE + DataGenerator.FIRST_NAMES_FEMALE)
+        return random.choice(pool)
+
+    @staticmethod
+    def generate_last_name():
+        pool = DataGenerator._LAST_POOL if DataGenerator._LAST_POOL else DataGenerator.LAST_NAMES
+        return random.choice(pool)
+
     @staticmethod
     def generate_username(first_name=None, last_name=None):
-        """Generate a random username"""
         if not first_name:
-            first_name = random.choice(DataGenerator.FIRST_NAMES_MALE + DataGenerator.FIRST_NAMES_FEMALE)
+            first_name = DataGenerator.generate_first_name()
         if not last_name:
-            last_name = random.choice(DataGenerator.LAST_NAMES)
+            last_name = DataGenerator.generate_last_name()
 
-        # Different username patterns
         patterns = [
             f"{first_name.lower()}{last_name.lower()}{random.randint(10, 999)}",
             f"{first_name.lower()}.{last_name.lower()}{random.randint(1, 99)}",
@@ -71,13 +141,10 @@ class DataGenerator:
             f"{first_name.lower()}{random.randint(1, 99)}{last_name.lower()}",
             f"{first_name.lower()}_{last_name.lower()}{random.randint(1, 999)}"
         ]
-
         return random.choice(patterns)
 
     @staticmethod
     def generate_password(length=12):
-        """Generate a strong random password"""
-        # Ensure password has all required character types
         lowercase = string.ascii_lowercase
         uppercase = string.ascii_uppercase
         digits = string.digits
@@ -91,54 +158,28 @@ class DataGenerator:
             random.choice(special)
         ]
 
-        # Fill the rest randomly
         all_chars = lowercase + uppercase + digits + special
         for _ in range(length - 4):
             password.append(random.choice(all_chars))
 
-        # Shuffle the password
         random.shuffle(password)
         return ''.join(password)
 
     @staticmethod
-    def generate_first_name(gender=None):
-        """Generate a random first name"""
-        if gender == "male":
-            return random.choice(DataGenerator.FIRST_NAMES_MALE)
-        elif gender == "female":
-            return random.choice(DataGenerator.FIRST_NAMES_FEMALE)
-        else:
-            # Random gender
-            all_names = DataGenerator.FIRST_NAMES_MALE + DataGenerator.FIRST_NAMES_FEMALE
-            return random.choice(all_names)
-
-    @staticmethod
-    def generate_last_name():
-        """Generate a random last name"""
-        return random.choice(DataGenerator.LAST_NAMES)
-
-    @staticmethod
     def generate_birthday(min_age=18, max_age=65):
-        """Generate a random birthday"""
         today = datetime.now()
-
-        # Calculate date range
         max_date = today - timedelta(days=min_age * 365)
         min_date = today - timedelta(days=max_age * 365)
 
-        # Generate random date between min and max
         time_between = max_date - min_date
         days_between = time_between.days
         random_days = random.randint(0, days_between)
 
         birthday = min_date + timedelta(days=random_days)
-
-        # Return in YYYY-MM-DD format
         return birthday.strftime("%Y-%m-%d")
 
     @staticmethod
     def generate_country():
-        """Generate a random country"""
         return random.choice(DataGenerator.COUNTRIES)
 
 

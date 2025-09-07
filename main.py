@@ -53,19 +53,14 @@ def cli_mode():
     # Account details
     parser.add_argument('--username',
                         help='Specific username (auto-generated if not provided)')
-
     parser.add_argument('--password',
                         help='Specific password (auto-generated if not provided)')
-
     parser.add_argument('--firstname',
                         help='First name (auto-generated if not provided)')
-
     parser.add_argument('--lastname',
                         help='Last name (auto-generated if not provided)')
-
     parser.add_argument('--birthdate',
                         help='Birth date YYYY-MM-DD (auto-generated if not provided)')
-
     parser.add_argument('--country',
                         help='Country (auto-generated if not provided)')
 
@@ -73,17 +68,14 @@ def cli_mode():
     parser.add_argument('--sms-service',
                         choices=['getsmscode', 'smspool', '5sim'],
                         help='SMS verification service')
-
     parser.add_argument('--sms-username',
                         help='Username for getsmscode')
-
     parser.add_argument('--sms-token',
                         help='API token for SMS service')
 
     # Proxy
     parser.add_argument('--proxy',
                         help='Proxy to use (format: http://ip:port)')
-
     parser.add_argument('--auto-proxy',
                         action='store_true',
                         help='Auto-fetch free proxies')
@@ -92,7 +84,6 @@ def cli_mode():
     parser.add_argument('-o', '--output',
                         default='accounts.txt',
                         help='Output file (default: accounts.txt)')
-
     parser.add_argument('--json',
                         action='store_true',
                         help='Export as JSON instead of TXT')
@@ -101,12 +92,27 @@ def cli_mode():
     parser.add_argument('--generate-only',
                         action='store_true',
                         help='Only generate and display random data without creating accounts')
-
     parser.add_argument('--gui',
                         action='store_true',
                         help='Launch GUI mode')
 
+    # --- Name list arguments ---
+    parser.add_argument('--names-combined',
+                        help='Path to file with "First Last" per line')
+    parser.add_argument('--names-first',
+                        help='Path to file with one first name per line')
+    parser.add_argument('--names-last',
+                        help='Path to file with one last name per line')
+
     args = parser.parse_args()
+
+    # --- Load names if provided ---
+    if any([args.names_combined, args.names_first, args.names_last]):
+        nm.DataGenerator.load_names_from_files(
+            combined=args.names_combined,
+            first_names=args.names_first,
+            last_names=args.names_last
+        )
 
     # Launch GUI if requested
     if args.gui:
@@ -177,9 +183,8 @@ def cli_mode():
             print(f"   Birthday: {account['birthdate']}")
             print(f"   Country: {account['country']}")
 
-        # Export to file
-        format = "json" if args.json else "txt"
-        if creator.export_accounts(args.output, format):
+        fmt = "json" if args.json else "txt"
+        if creator.export_accounts(args.output, fmt):
             print(f"\n💾 Accounts exported to: {args.output}")
     else:
         print("\n❌ No accounts were created successfully")
