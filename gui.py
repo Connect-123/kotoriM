@@ -7,7 +7,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext, filedialog
 import threading
 from datetime import datetime
-import ninjemail as nm  # Import our ninjemail module
+import nmCore as nm  # Import our ninjemail module
 
 
 class NinjemailGUI:

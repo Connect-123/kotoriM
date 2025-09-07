@@ -5,7 +5,7 @@ Can run in CLI mode or launch the GUI
 
 import sys
 import argparse
-import ninjemail as nm
+import nmCore as nm
 from gui import run_gui
 
 
