@@ -13,7 +13,6 @@ from typing import List, Optional
 
 # Try to import the actual ninjemail library
 try:
-    # Import from the nested package bundled with this repository
     from ninjemail.ninjemail import Ninjemail as NinjemailLib
     NINJEMAIL_AVAILABLE = True
 except ImportError:
