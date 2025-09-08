@@ -11,13 +11,26 @@ import os
 import warnings
 from typing import List, Optional
 
-# Try to import the actual ninjemail library
 try:
-    from ninjemail.ninjemail import Ninjemail as NinjemailLib
+    import sys
+    import os
+
+    # Add the current directory to Python path if not already there
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    if current_dir not in sys.path:
+        sys.path.insert(0, current_dir)
+
+    from ninjemail import Ninjemail as NinjemailLib
+
     NINJEMAIL_AVAILABLE = True
-except ImportError:
+    print(f"Successfully imported Ninjemail from {NinjemailLib.__module__}")
+except ImportError as e:
     NINJEMAIL_AVAILABLE = False
     NinjemailLib = None
+    print(f"Import error details: {e}")
+    import traceback
+
+    traceback.print_exc()
 
 
 class DataGenerator:
