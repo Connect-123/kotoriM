@@ -4,6 +4,7 @@ Handles all the business logic and account generation
 """
 
 import random
+import re
 import string
 from datetime import datetime, timedelta
 import json
@@ -190,6 +191,15 @@ class DataGenerator:
         return random.choice(DataGenerator.COUNTRIES)
 
 
+def _normalize_proxy(p: str | None) -> str | None:
+    if not p:
+        return None
+    p = p.strip()
+    if not re.match(r"^[a-zA-Z]+://", p):
+        p = "http://" + p  # default scheme if missing
+    return p
+
+
 class AccountCreator:
     """Handles the actual account creation process"""
 
@@ -200,7 +210,8 @@ class AccountCreator:
     def create_account(self, provider="gmail", browser="chrome", headless=False,
                        username=None, password=None, firstname=None, lastname=None,
                        birthdate=None, country=None, sms_service=None, sms_config=None,
-                       proxies=None, auto_proxy=False, auto_generate=True):
+                       proxies=None, auto_proxy=False, auto_generate=True,
+                       captcha_config=None):
         """
         Create a single email account
 
@@ -268,7 +279,7 @@ class AccountCreator:
                     sms_keys[sms_service] = sms_config.get("token")
 
             # Prepare captcha keys (empty for now, can be extended later)
-            captcha_keys = {}
+            captcha_keys = captcha_config if captcha_config else {}
 
             # Convert birthdate from YYYY-MM-DD to MM-DD-YYYY format for ninjemail
             birthdate_formatted = birthdate
@@ -282,6 +293,20 @@ class AccountCreator:
                         birthdate_formatted = f"{month.zfill(2)}-{day.zfill(2)}-{year}"
                 except:
                     pass  # Keep original format if parsing fails
+
+            # --- Normalize proxies to proper scheme(s)
+            proxy_list = None
+            if proxies:
+                if isinstance(proxies, (list, tuple)):
+                    proxy_list = [_normalize_proxy(x) for x in proxies if x]
+                else:
+                    proxy_list = [_normalize_proxy(proxies)]
+                proxy_list = [x for x in proxy_list if x] or None
+
+            print(f"[nmCore] proxies param (normalized) = {proxy_list}, auto_proxy={auto_proxy}")  # debug
+
+            # Use normalized list going forward
+            proxies = proxy_list
 
             # Create Ninjemail instance with correct parameters
             ninja = NinjemailLib(

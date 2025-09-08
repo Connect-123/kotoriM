@@ -905,6 +905,10 @@ class NinjemailGUI:
             sms_service, sms_config = self.get_sms_config()
             proxies = self.get_proxy_list()
             auto_proxy = self.auto_proxy_var.get() if self.use_proxy_var.get() else False
+            captcha_config = self.get_captcha_config()
+
+            self.log(f"GUI proxy config → use_proxy={self.use_proxy_var.get()}, "
+                     f"auto_proxy={auto_proxy}, proxies={proxies}", "INFO")
 
             # Kick off creation
             account = self.account_creator.create_account(
@@ -921,7 +925,8 @@ class NinjemailGUI:
                 sms_config=sms_config,
                 proxies=proxies,
                 auto_proxy=auto_proxy,
-                auto_generate=True
+                auto_generate=True,
+                captcha_config=captcha_config,
             )
 
             if account:
@@ -1001,6 +1006,7 @@ class NinjemailGUI:
             sms_service, sms_config = self.get_sms_config()
             proxies = self.get_proxy_list()
             auto_proxy = self.auto_proxy_var.get() if self.use_proxy_var.get() else False
+            captcha_config = self.get_captcha_config()
 
             accounts = self.account_creator.batch_create(
                 count=count,
@@ -1017,7 +1023,8 @@ class NinjemailGUI:
                 sms_config=sms_config,
                 proxies=proxies,
                 auto_proxy=auto_proxy,
-                auto_generate=True
+                auto_generate=True,
+                captcha_config=captcha_config,
             )
 
             if accounts:
