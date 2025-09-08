@@ -8,22 +8,17 @@ import string
 from datetime import datetime, timedelta
 import json
 import os
+import warnings
 from typing import List, Optional
 
 # Try to import the actual ninjemail library
 try:
-    from ninjemail import Ninjemail as NinjemailLib
-
+    # Import from the nested package bundled with this repository
+    from ninjemail.ninjemail import Ninjemail as NinjemailLib
     NINJEMAIL_AVAILABLE = True
 except ImportError:
-    print("Warning: ninjemail library not found. Install with: pip install ninjemail")
     NINJEMAIL_AVAILABLE = False
     NinjemailLib = None
-
-import random
-import string
-from datetime import datetime, timedelta
-from typing import List, Optional
 
 
 class DataGenerator:
@@ -218,6 +213,11 @@ class AccountCreator:
 
         # If ninjemail library is not available, simulate account creation
         if not NINJEMAIL_AVAILABLE:
+            warnings.warn(
+                "ninjemail library not found; running in simulation mode. "
+                "Install with 'pip install ninjemail' for real account creation.",
+                RuntimeWarning,
+            )
             print(f"[SIMULATION] Would create {provider} account:")
             print(f"  Username: {username}")
             print(f"  Password: {password}")
