@@ -7,7 +7,8 @@ import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext, filedialog
 import threading
 from datetime import datetime
-import nmCore as nm  # Import our ninjemail module
+import nmCore as nm
+import warnings
 
 
 class NinjemailGUI:
@@ -233,15 +234,74 @@ class NinjemailGUI:
         self.batch_count.pack()
 
     def create_sms_tab(self):
-        """Create SMS service configuration tab"""
+        """Create SMS and Captcha service configuration tab"""
         sms_frame = ttk.Frame(self.notebook, style="Dark.TFrame")
-        self.notebook.add(sms_frame, text="📱 SMS Services")
+        self.notebook.add(sms_frame, text="🔐 Services")
 
-        ttk.Label(sms_frame, text="SMS Verification Services",
+        # Create a scrollable frame
+        canvas = tk.Canvas(sms_frame, bg=self.bg_color)
+        scrollbar = ttk.Scrollbar(sms_frame, orient="vertical", command=canvas.yview)
+        scrollable_frame = ttk.Frame(canvas, style="Dark.TFrame")
+
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        # ============ CAPTCHA SERVICES SECTION ============
+        ttk.Label(scrollable_frame, text="Captcha Verification Services",
                   style="Heading.TLabel").pack(pady=20)
 
-        # Service selection
-        service_frame = tk.Frame(sms_frame, bg=self.bg_color)
+        # Captcha service selection
+        captcha_service_frame = tk.Frame(scrollable_frame, bg=self.bg_color)
+        captcha_service_frame.pack(pady=10)
+
+        ttk.Label(captcha_service_frame, text="Service:", style="Dark.TLabel").pack(side=tk.LEFT, padx=5)
+
+        self.captcha_service_var = tk.StringVar(value="none")
+        captcha_services = ["none", "capsolver", "nopecha"]
+        self.captcha_combo = ttk.Combobox(captcha_service_frame, textvariable=self.captcha_service_var,
+                                          values=captcha_services, state="readonly", width=20)
+        self.captcha_combo.pack(side=tk.LEFT, padx=5)
+        self.captcha_combo.bind("<<ComboboxSelected>>", self.on_captcha_change)
+
+        # Captcha credentials frame
+        self.captcha_creds_frame = ttk.LabelFrame(scrollable_frame, text="Captcha Service Credentials",
+                                                  style="Dark.TFrame")
+        self.captcha_creds_frame.pack(fill=tk.X, padx=10, pady=20)
+
+        # Capsolver
+        self.capsolver_frame = tk.Frame(self.captcha_creds_frame, bg=self.bg_color)
+        ttk.Label(self.capsolver_frame, text="API Key:", style="Dark.TLabel").grid(row=0, column=0, padx=5, pady=5)
+        self.capsolver_key = ttk.Entry(self.capsolver_frame, width=30, show="*")
+        self.capsolver_key.grid(row=0, column=1, padx=5, pady=5)
+
+        tk.Button(self.capsolver_frame, text="🔗 Get Key",
+                  bg="#2196F3", fg="white", font=('Arial', 9),
+                  command=lambda: self.open_url("https://capsolver.com")).grid(row=0, column=2, padx=5, pady=5)
+
+        # Nopecha
+        self.nopecha_frame = tk.Frame(self.captcha_creds_frame, bg=self.bg_color)
+        ttk.Label(self.nopecha_frame, text="API Key:", style="Dark.TLabel").grid(row=0, column=0, padx=5, pady=5)
+        self.nopecha_key = ttk.Entry(self.nopecha_frame, width=30, show="*")
+        self.nopecha_key.grid(row=0, column=1, padx=5, pady=5)
+
+        tk.Button(self.nopecha_frame, text="🔗 Get Key",
+                  bg="#2196F3", fg="white", font=('Arial', 9),
+                  command=lambda: self.open_url("https://nopecha.com")).grid(row=0, column=2, padx=5, pady=5)
+
+        # Separator
+        ttk.Separator(scrollable_frame, orient='horizontal').pack(fill=tk.X, padx=10, pady=20)
+
+        # ============ SMS SERVICES SECTION ============
+        ttk.Label(scrollable_frame, text="SMS Verification Services",
+                  style="Heading.TLabel").pack(pady=20)
+
+        # SMS service selection
+        service_frame = tk.Frame(scrollable_frame, bg=self.bg_color)
         service_frame.pack(pady=10)
 
         ttk.Label(service_frame, text="Service:", style="Dark.TLabel").pack(side=tk.LEFT, padx=5)
@@ -253,8 +313,8 @@ class NinjemailGUI:
         self.sms_combo.pack(side=tk.LEFT, padx=5)
         self.sms_combo.bind("<<ComboboxSelected>>", self.on_sms_change)
 
-        # Credentials frame
-        self.sms_creds_frame = ttk.LabelFrame(sms_frame, text="Service Credentials", style="Dark.TFrame")
+        # SMS credentials frame
+        self.sms_creds_frame = ttk.LabelFrame(scrollable_frame, text="SMS Service Credentials", style="Dark.TFrame")
         self.sms_creds_frame.pack(fill=tk.X, padx=10, pady=20)
 
         # GetSMSCode
@@ -279,8 +339,255 @@ class NinjemailGUI:
         self.fivesim_token = ttk.Entry(self.fivesim_frame, width=30, show="*")
         self.fivesim_token.grid(row=0, column=1, padx=5, pady=5)
 
+        # Service requirements info
+        info_frame = ttk.LabelFrame(scrollable_frame, text="Service Requirements", style="Dark.TFrame")
+        info_frame.pack(fill=tk.X, padx=10, pady=20)
+
+        info_text = """
+        📧 Gmail: Requires SMS verification service
+        📧 Outlook: Requires Captcha solving service  
+        📧 Yahoo: Requires both Captcha and SMS services
+
+        Note: These are paid services. Make sure you have credits before attempting account creation.
+        """
+
+        tk.Label(info_frame, text=info_text, bg=self.bg_color, fg="#888888",
+                 justify=tk.LEFT, font=('Arial', 10)).pack(padx=10, pady=10)
+
+        # Pack canvas and scrollbar
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+
         # Initially hide all
+        self.on_captcha_change()
         self.on_sms_change()
+
+    def on_captcha_change(self, event=None):
+        """Handle Captcha service change"""
+        for frame in [self.capsolver_frame, self.nopecha_frame]:
+            frame.pack_forget()
+
+        service = self.captcha_service_var.get()
+        if service == "capsolver":
+            self.capsolver_frame.pack(fill=tk.X, padx=5, pady=5)
+        elif service == "nopecha":
+            self.nopecha_frame.pack(fill=tk.X, padx=5, pady=5)
+
+    def open_url(self, url):
+        """Open URL in browser"""
+        import webbrowser
+        webbrowser.open(url)
+
+    # Add these methods to the NinjemailGUI class in gui.py
+
+    def get_captcha_config(self):
+        """Get Captcha configuration"""
+        service = self.captcha_service_var.get()
+
+        if service == "none":
+            return {}
+        elif service == "capsolver":
+            key = self.capsolver_key.get()
+            if key:
+                return {"capsolver": key}
+        elif service == "nopecha":
+            key = self.nopecha_key.get()
+            if key:
+                return {"nopecha": key}
+
+        return {}
+
+    def create_account(self, provider="gmail", browser="chrome", headless=False,
+                       username=None, password=None, firstname=None, lastname=None,
+                       birthdate=None, country=None, sms_service=None, sms_config=None,
+                       captcha_config=None, proxies=None, auto_proxy=False, auto_generate=True):
+        """
+        Create a single email account
+
+        Returns:
+            dict: Account details if successful, None otherwise
+        """
+
+        # Auto-generate data if requested
+        if auto_generate:
+            if not firstname:
+                firstname = nm.DataGenerator.generate_first_name()
+            if not lastname:
+                lastname = nm.DataGenerator.generate_last_name()
+            if not birthdate:
+                birthdate = nm.DataGenerator.generate_birthday()
+            if not country:
+                country = nm.DataGenerator.generate_country()
+            if not username:
+                username = nm.DataGenerator.generate_username(firstname, lastname)
+            if not password:
+                password = nm.DataGenerator.generate_password()
+
+        # If ninjemail library is not available, simulate account creation
+        if not nm.NINJEMAIL_AVAILABLE:
+            warnings.warn(
+                "ninjemail library not found; running in simulation mode. "
+                "Install with 'pip install ninjemail' for real account creation.",
+                RuntimeWarning,
+            )
+            print(f"[SIMULATION] Would create {provider} account:")
+            print(f"  Username: {username}")
+            print(f"  Password: {password}")
+            print(f"  Name: {firstname} {lastname}")
+            print(f"  Birthday: {birthdate}")
+            print(f"  Country: {country}")
+
+            # Simulate success
+            account_data = {
+                "provider": provider,
+                "username": username,
+                "password": password,
+                "firstname": firstname,
+                "lastname": lastname,
+                "birthdate": birthdate,
+                "country": country,
+                "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "status": "simulated"
+            }
+
+            self.created_accounts.append(account_data)
+            return account_data
+
+        try:
+            # Prepare SMS keys dictionary
+            sms_keys = {}
+            if sms_service and sms_config:
+                if sms_service == "getsmscode":
+                    # getsmscode expects username and token
+                    sms_keys[sms_service] = {
+                        "username": sms_config.get("username"),
+                        "token": sms_config.get("token")
+                    }
+                else:
+                    # smspool and 5sim expect just a token
+                    sms_keys[sms_service] = sms_config.get("token")
+
+            # Prepare captcha keys dictionary
+            captcha_keys = captcha_config if captcha_config else {}
+
+            # Convert birthdate from YYYY-MM-DD to MM-DD-YYYY format for ninjemail
+            birthdate_formatted = birthdate
+            if birthdate and "-" in birthdate:
+                try:
+                    # Parse YYYY-MM-DD
+                    parts = birthdate.split("-")
+                    if len(parts) == 3:
+                        year, month, day = parts
+                        # Convert to MM-DD-YYYY for ninjemail
+                        birthdate_formatted = f"{month.zfill(2)}-{day.zfill(2)}-{year}"
+                except:
+                    pass  # Keep original format if parsing fails
+
+            # Create Ninjemail instance with correct parameters
+            ninja = nm.NinjemailLib(
+                browser=browser,
+                captcha_keys=captcha_keys,
+                sms_keys=sms_keys,
+                proxies=proxies,
+                auto_proxy=auto_proxy
+            )
+
+            # Call the appropriate method based on provider
+            result = None
+            if provider.lower() == "gmail":
+                result = ninja.create_gmail_account(
+                    username=username,
+                    password=password,
+                    first_name=firstname,
+                    last_name=lastname,
+                    birthdate=birthdate_formatted,
+                    use_proxy=(proxies is not None or auto_proxy)
+                )
+            elif provider.lower() == "outlook":
+                result = ninja.create_outlook_account(
+                    username=username,
+                    password=password,
+                    first_name=firstname,
+                    last_name=lastname,
+                    country=country,
+                    birthdate=birthdate_formatted,
+                    hotmail=False,
+                    use_proxy=(proxies is not None or auto_proxy)
+                )
+            elif provider.lower() == "yahoo":
+                result = ninja.create_yahoo_account(
+                    username=username,
+                    password=password,
+                    first_name=firstname,
+                    last_name=lastname,
+                    birthdate=birthdate_formatted,
+                    use_proxy=(proxies is not None or auto_proxy)
+                )
+            else:
+                print(f"Unsupported provider: {provider}")
+                return None
+
+            if result:
+                # Result might be a tuple (username, password) or dict
+                if isinstance(result, tuple):
+                    actual_username, actual_password = result
+                elif isinstance(result, dict):
+                    actual_username = result.get("email", username)
+                    actual_password = result.get("password", password)
+                else:
+                    actual_username = username
+                    actual_password = password
+
+                account_data = {
+                    "provider": provider,
+                    "username": actual_username,
+                    "password": actual_password,
+                    "firstname": firstname,
+                    "lastname": lastname,
+                    "birthdate": birthdate,
+                    "country": country,
+                    "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "status": "success"
+                }
+
+                self.created_accounts.append(account_data)
+                return account_data
+
+        except Exception as e:
+            print(f"Error creating account: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return None
+
+        return None
+
+    def batch_create(self, count=1, captcha_config=None, **kwargs):
+        """
+        Create multiple accounts
+
+        Args:
+            count: Number of accounts to create
+            captcha_config: Captcha service configuration
+            **kwargs: Arguments to pass to create_account
+
+        Returns:
+            list: List of created accounts
+        """
+        accounts = []
+
+        for i in range(count):
+            print(f"Creating account {i + 1}/{count}...")
+
+            # Generate new data for each account
+            account = self.create_account(captcha_config=captcha_config, **kwargs)
+
+            if account:
+                accounts.append(account)
+                print(f"Successfully created: {account['username']}")
+            else:
+                print(f"Failed to create account {i + 1}")
+
+        return accounts
 
     def create_proxy_tab(self):
         """Create proxy configuration tab"""

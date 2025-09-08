@@ -254,39 +254,94 @@ class AccountCreator:
             return account_data
 
         try:
-            # Create Ninjemail instance
-            ninja = NinjemailLib(
-                provider=provider,
-                browser=browser,
-                headless=headless
-            )
-
-            # Set SMS service if configured
+            # Prepare SMS keys dictionary
+            sms_keys = {}
             if sms_service and sms_config:
                 if sms_service == "getsmscode":
-                    ninja.set_getsmscode(sms_config["username"], sms_config["token"])
-                elif sms_service == "smspool":
-                    ninja.set_smspool(sms_config["token"])
-                elif sms_service == "5sim":
-                    ninja.set_5sim(sms_config["token"])
+                    # getsmscode expects username and token
+                    sms_keys[sms_service] = {
+                        "username": sms_config.get("username"),
+                        "token": sms_config.get("token")
+                    }
+                else:
+                    # smspool and 5sim expect just a token
+                    sms_keys[sms_service] = sms_config.get("token")
 
-            # Create the account
-            result = ninja.create(
-                username=username,
-                password=password,
-                firstname=firstname,
-                lastname=lastname,
-                birthdate=birthdate,
-                country=country,
+            # Prepare captcha keys (empty for now, can be extended later)
+            captcha_keys = {}
+
+            # Convert birthdate from YYYY-MM-DD to MM-DD-YYYY format for ninjemail
+            birthdate_formatted = birthdate
+            if birthdate and "-" in birthdate:
+                try:
+                    # Parse YYYY-MM-DD
+                    parts = birthdate.split("-")
+                    if len(parts) == 3:
+                        year, month, day = parts
+                        # Convert to MM-DD-YYYY for ninjemail
+                        birthdate_formatted = f"{month.zfill(2)}-{day.zfill(2)}-{year}"
+                except:
+                    pass  # Keep original format if parsing fails
+
+            # Create Ninjemail instance with correct parameters
+            ninja = NinjemailLib(
+                browser=browser,
+                captcha_keys=captcha_keys,
+                sms_keys=sms_keys,
                 proxies=proxies,
                 auto_proxy=auto_proxy
             )
 
+            # Call the appropriate method based on provider
+            result = None
+            if provider.lower() == "gmail":
+                result = ninja.create_gmail_account(
+                    username=username,
+                    password=password,
+                    first_name=firstname,
+                    last_name=lastname,
+                    birthdate=birthdate_formatted,
+                    use_proxy=(proxies is not None or auto_proxy)
+                )
+            elif provider.lower() == "outlook":
+                result = ninja.create_outlook_account(
+                    username=username,
+                    password=password,
+                    first_name=firstname,
+                    last_name=lastname,
+                    country=country,
+                    birthdate=birthdate_formatted,
+                    hotmail=False,
+                    use_proxy=(proxies is not None or auto_proxy)
+                )
+            elif provider.lower() == "yahoo":
+                result = ninja.create_yahoo_account(
+                    username=username,
+                    password=password,
+                    first_name=firstname,
+                    last_name=lastname,
+                    birthdate=birthdate_formatted,
+                    use_proxy=(proxies is not None or auto_proxy)
+                )
+            else:
+                print(f"Unsupported provider: {provider}")
+                return None
+
             if result:
+                # Result might be a tuple (username, password) or dict
+                if isinstance(result, tuple):
+                    actual_username, actual_password = result
+                elif isinstance(result, dict):
+                    actual_username = result.get("email", username)
+                    actual_password = result.get("password", password)
+                else:
+                    actual_username = username
+                    actual_password = password
+
                 account_data = {
                     "provider": provider,
-                    "username": result.get("username", username),
-                    "password": result.get("password", password),
+                    "username": actual_username,
+                    "password": actual_password,
                     "firstname": firstname,
                     "lastname": lastname,
                     "birthdate": birthdate,
@@ -300,6 +355,8 @@ class AccountCreator:
 
         except Exception as e:
             print(f"Error creating account: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return None
 
         return None
